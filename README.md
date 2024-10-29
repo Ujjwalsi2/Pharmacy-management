@@ -1,13 +1,5 @@
 # **Pharmacy-Management-System**
 
-**How to run the Project:**
-1. Clone this repo using 
-   - `git clone https://github.com/syedibrahim/Pharmacy-Management-System.git`
-2. Install Eclipse J2EE or any other IDE of your choice.
-3. Use WAMP or XAMPP or any server of your choice.
-4. First create the MySql database on WAMP server using the sql file in the repo
-5. And then build and run the project from the IDE. 
-
 **Login Information** <br>
  ```
  id :1
@@ -60,20 +52,7 @@ o	Have high performance.<br><br>
 
 **Architecture Description** <br>
 The design of a DBMS depends on its architecture. It can be centralized or decentralized or hierarchical. The architecture of a DBMS can be seen as either single tier or multi-tier.<br><br>
-**ER Diagram**
 
-![image.png](diagram/ER_diagram.png)
- 
-Fig 1: ER Diagram
-
-An entity–relationship model describes interrelated things of interest in a specific domain of knowledge (Refer Fig 1). It is composed of entity types and specifies relationships that can exist between instances of those entity types.
- 
-**Relational Schema Diagram**
-
-![image_1.png](diagram/RelationalSchema.png)
-
- Fig 2: Relational Schema <br><br>
-Relational schema is a collection of meta-data. Database schema describes the structure and constraints of data representing in a particular domain (Refer Fig 2).
 
 # Chapter 3 - IMPLEMENTATION <br>
 **Description on Implementation**<br>
