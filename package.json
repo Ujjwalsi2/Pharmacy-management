@@ -1,0 +1,27 @@
+{
+  "name": "meditrack",
+  "private": true,
+  "version": "1.0.0",
+  "description": "MediTrack - modern pharmacy management platform",
+  "workspaces": [
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm run dev -w @meditrack/api",
+    "dev:web": "npm run dev -w @meditrack/web",
+    "build": "npm run build -w @meditrack/api && npm run build -w @meditrack/web",
+    "test": "npm run test -w @meditrack/api && npm run test -w @meditrack/web",
+    "lint": "npm run lint -w @meditrack/api && npm run lint -w @meditrack/web",
+    "typecheck": "npm run typecheck -w @meditrack/api && npm run typecheck -w @meditrack/web",
+    "db:reset": "npm run db:reset -w @meditrack/api",
+    "seed": "npm run seed -w @meditrack/api",
+    "setup": "npm install && npm run db:reset"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

@@ -1,0 +1,194 @@
+// MediTrack Prisma schema
+// Modernized from the legacy pharmacy.sql MySQL dump:
+//   company        -> Company
+//   drugs          -> Drug
+//   purchase       -> Purchase + PurchaseItem
+//   sales/history_sales -> Sale + SaleItem
+//   users          -> User (bcrypt hashed passwords, roles)
+//   login          -> LoginAudit
+//   inbox/message_history -> Message
+//
+// NOTE: SQLite has no native enum type support in Prisma, so `role`,
+// `type`, and `paymentMode` are stored as `String` columns. The allowed
+// values are enforced at the application layer (zod schemas in
+// src/routes/*.ts and the shared union types in src/types/index.ts), and
+// the API contract's enum values are exactly what is written to these
+// columns, so the wire format is unaffected.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("PHARMACIST")
+  phone     String?
+  address   String?
+  dob       String?
+  salary    Float?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchases        Purchase[]
+  sales            Sale[]
+  loginAudits      LoginAudit[]
+  sentMessages     Message[]    @relation("MessagesSent")
+  receivedMessages Message[]    @relation("MessagesReceived")
+
+  @@map("users")
+}
+
+model LoginAudit {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  success   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("login_audits")
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  address   String?
+  phone     String?
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  drugs     Drug[]
+  purchases Purchase[]
+
+  @@map("companies")
+}
+
+model Drug {
+  id             String   @id @default(cuid())
+  name           String
+  barcode        String   @unique
+  type           String   @default("TABLET")
+  dose           String?
+  code           String?
+  costPrice      Float
+  sellingPrice   Float
+  companyId      String
+  company        Company  @relation(fields: [companyId], references: [id])
+  productionDate DateTime
+  expirationDate DateTime
+  place          String?
+  quantity       Int      @default(0)
+  reorderLevel   Int      @default(10)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  purchaseItems PurchaseItem[]
+  saleItems     SaleItem[]
+
+  @@index([name])
+  @@index([companyId])
+  @@map("drugs")
+}
+
+model Purchase {
+  id        String   @id @default(cuid())
+  reference String   @unique
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  notes     String?
+  total     Float
+  createdAt DateTime @default(now())
+
+  items PurchaseItem[]
+
+  @@index([companyId])
+  @@index([createdAt])
+  @@map("purchases")
+}
+
+model PurchaseItem {
+  id         String   @id @default(cuid())
+  purchaseId String
+  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  drugId     String
+  drug       Drug     @relation(fields: [drugId], references: [id])
+  quantity   Int
+  unitCost   Float
+  amount     Float
+
+  @@map("purchase_items")
+}
+
+model Sale {
+  id            String   @id @default(cuid())
+  invoiceNo     String   @unique
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  customerName  String   @default("Walk-in")
+  customerPhone String?  @default("")
+  paymentMode   String   @default("CASH")
+  subtotal      Float
+  discount      Float    @default(0)
+  taxRate       Float    @default(0)
+  tax           Float    @default(0)
+  total         Float
+  createdAt     DateTime @default(now())
+
+  items SaleItem[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("sales")
+}
+
+model SaleItem {
+  id        String  @id @default(cuid())
+  saleId    String
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  drugId    String
+  drug      Drug    @relation(fields: [drugId], references: [id])
+  name      String
+  barcode   String
+  dose      String?
+  quantity  Int
+  unitPrice Float
+  amount    Float
+
+  @@map("sale_items")
+}
+
+model Message {
+  id         String    @id @default(cuid())
+  fromUserId String
+  fromUser   User      @relation("MessagesSent", fields: [fromUserId], references: [id])
+  toUserId   String
+  toUser     User      @relation("MessagesReceived", fields: [toUserId], references: [id])
+  body       String
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([toUserId])
+  @@index([fromUserId])
+  @@map("messages")
+}
+
+// Race-safe sequential number generation for invoiceNo / reference.
+// One row per (scope, year), incremented inside the same transaction
+// as the Sale/Purchase creation.
+model Counter {
+  id    String @id // e.g. "sale-2026" or "purchase-2026"
+  value Int    @default(0)
+
+  @@map("counters")
+}
