@@ -13,3 +13,4 @@ coverage/
 .vite/
 apps/api/prisma/dev.db*
 apps/api/tests/*.db*
+*.tsbuildinfo
