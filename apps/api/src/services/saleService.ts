@@ -49,6 +49,7 @@ export interface ListSalesQuery {
   from?: string;
   to?: string;
   sort?: string;
+  paymentMode?: PaymentMode;
 }
 
 export async function listSales(query: ListSalesQuery, caller: { id: string; role: Role }) {
@@ -62,6 +63,7 @@ export async function listSales(query: ListSalesQuery, caller: { id: string; rol
     ];
   }
   if (query.userId) where.userId = query.userId;
+  if (query.paymentMode) where.paymentMode = query.paymentMode;
   if (query.from || query.to) {
     where.createdAt = {};
     if (query.from) where.createdAt.gte = new Date(query.from);

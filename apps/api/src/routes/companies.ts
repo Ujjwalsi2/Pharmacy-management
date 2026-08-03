@@ -17,7 +17,8 @@ const listQuerySchema = z.object({
 
 companiesRouter.get('/', validate({ query: listQuerySchema }), async (req, res, next) => {
   try {
-    res.json(await companyService.listCompanies(req.query as any));
+    const query = req.query as z.infer<typeof listQuerySchema>;
+    res.json(await companyService.listCompanies(query));
   } catch (err) {
     next(err);
   }

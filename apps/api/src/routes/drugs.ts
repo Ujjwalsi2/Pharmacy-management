@@ -41,7 +41,8 @@ drugsRouter.get('/barcode/:barcode', async (req, res, next) => {
 
 drugsRouter.get('/', validate({ query: listQuerySchema }), async (req, res, next) => {
   try {
-    res.json(await drugService.listDrugs(req.query as any));
+    const query = req.query as z.infer<typeof listQuerySchema>;
+    res.json(await drugService.listDrugs(query));
   } catch (err) {
     next(err);
   }

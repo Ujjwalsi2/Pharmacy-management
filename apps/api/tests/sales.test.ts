@@ -153,4 +153,54 @@ describe('Sales', () => {
     expect(todayEntry.orders).toBeGreaterThanOrEqual(1);
     expect(todayEntry.revenue).toBeGreaterThanOrEqual(30);
   });
+  it('filters the sales list by paymentMode server-side', async () => {
+    await createTestUser({ email: 'sales-pm@test.dev', password: 'Password1', role: 'ADMIN' });
+    const token = await loginAs('sales-pm@test.dev', 'Password1');
+    const company = await createTestCompany('SalesCo PM');
+    const drug = await createTestDrug({
+      name: 'PayModeDrug',
+      barcode: 'SALE-PM-01',
+      companyId: company.id,
+      quantity: 100,
+      sellingPrice: 10
+    });
+
+    const modes = ['CASH', 'CARD', 'CARD', 'UPI'] as const;
+    for (const paymentMode of modes) {
+      const created = await request(app)
+        .post('/api/sales')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ paymentMode, items: [{ drugId: drug.id, quantity: 1 }] });
+      expect(created.status).toBe(201);
+    }
+
+    const cardRes = await request(app)
+      .get('/api/sales?paymentMode=CARD&pageSize=100')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(cardRes.status).toBe(200);
+    expect(cardRes.body.data.length).toBeGreaterThanOrEqual(2);
+    // Every returned row must match the filter...
+    for (const sale of cardRes.body.data) {
+      expect(sale.paymentMode).toBe('CARD');
+    }
+    // ...and `total` must reflect the FILTERED count, not every sale.
+    expect(cardRes.body.total).toBe(cardRes.body.data.length);
+
+    const allRes = await request(app)
+      .get('/api/sales?pageSize=100')
+      .set('Authorization', `Bearer ${token}`);
+    expect(allRes.body.total).toBeGreaterThan(cardRes.body.total);
+
+    const upiRes = await request(app)
+      .get('/api/sales?paymentMode=UPI&pageSize=100')
+      .set('Authorization', `Bearer ${token}`);
+    expect(upiRes.body.data.every((sale: { paymentMode: string }) => sale.paymentMode === 'UPI')).toBe(true);
+
+    const badRes = await request(app)
+      .get('/api/sales?paymentMode=BITCOIN')
+      .set('Authorization', `Bearer ${token}`);
+    expect(badRes.status).toBe(400);
+    expect(badRes.body.error.code).toBe('VALIDATION_ERROR');
+  });
 });

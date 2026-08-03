@@ -20,7 +20,8 @@ const listQuerySchema = z.object({
 
 purchasesRouter.get('/', validate({ query: listQuerySchema }), async (req, res, next) => {
   try {
-    res.json(await purchaseService.listPurchases(req.query as any));
+    const query = req.query as z.infer<typeof listQuerySchema>;
+    res.json(await purchaseService.listPurchases(query));
   } catch (err) {
     next(err);
   }

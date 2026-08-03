@@ -152,7 +152,7 @@ with `VALIDATION_ERROR` if any drug is expired.
 
 | Method | Path | Role | Notes |
 | --- | --- | --- | --- |
-| GET | `/sales` | auth | `search` (invoiceNo/customer), `userId`, `from`, `to`; PHARMACIST sees own sales only |
+| GET | `/sales` | auth | `search` (invoiceNo/customer), `userId`, `paymentMode`, `from`, `to`; PHARMACIST sees own sales only |
 | POST | `/sales` | auth | `{ customerName?, customerPhone?, paymentMode, discount?, taxRate?, items: [{ drugId, quantity }] }` |
 | GET | `/sales/:id` | auth | full invoice |
 

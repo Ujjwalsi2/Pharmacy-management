@@ -24,7 +24,8 @@ messagesRouter.get('/unread-count', async (req, res, next) => {
 
 messagesRouter.get('/', validate({ query: listQuerySchema }), async (req, res, next) => {
   try {
-    res.json(await messageService.listMessages(req.user!.id, req.query as any));
+    const query = req.query as z.infer<typeof listQuerySchema>;
+    res.json(await messageService.listMessages(req.user!.id, query));
   } catch (err) {
     next(err);
   }

@@ -19,7 +19,8 @@ const listQuerySchema = z.object({
 
 usersRouter.get('/', validate({ query: listQuerySchema }), async (req, res, next) => {
   try {
-    const result = await userService.listUsers(req.query as any, req.user!.role);
+    const query = req.query as z.infer<typeof listQuerySchema>;
+    const result = await userService.listUsers(query, req.user!.role);
     res.json(result);
   } catch (err) {
     next(err);

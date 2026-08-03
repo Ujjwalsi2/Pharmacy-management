@@ -15,12 +15,14 @@ const listQuerySchema = z.object({
   userId: z.string().optional(),
   from: z.string().optional(),
   to: z.string().optional(),
+  paymentMode: z.enum(['CASH', 'CARD', 'UPI']).optional(),
   sort: z.string().optional()
 });
 
 salesRouter.get('/', validate({ query: listQuerySchema }), async (req, res, next) => {
   try {
-    res.json(await saleService.listSales(req.query as any, req.user!));
+    const query = req.query as z.infer<typeof listQuerySchema>;
+    res.json(await saleService.listSales(query, req.user!));
   } catch (err) {
     next(err);
   }
