@@ -158,6 +158,15 @@ export async function createSale(userId: string, input: CreateSaleInput) {
       });
     }
 
+    // Guard against a discount larger than the subtotal, which would otherwise
+    // persist a negative total (and negative tax) and corrupt revenue reporting.
+    if (discount > subtotal) {
+      throw AppError.validation(
+        `Discount (${discount}) cannot exceed the subtotal (${subtotal})`,
+        { subtotal, discount }
+      );
+    }
+
     const tax = round2((subtotal - discount) * (taxRate / 100));
     const total = round2(subtotal - discount + tax);
 

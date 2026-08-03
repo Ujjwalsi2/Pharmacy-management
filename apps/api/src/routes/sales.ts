@@ -33,7 +33,7 @@ const saleSchema = z.object({
   customerPhone: z.string().optional(),
   paymentMode: z.enum(['CASH', 'CARD', 'UPI']),
   discount: z.number().nonnegative().optional(),
-  taxRate: z.number().nonnegative().optional(),
+  taxRate: z.number().nonnegative().max(100).optional(),
   items: z
     .array(
       z.object({

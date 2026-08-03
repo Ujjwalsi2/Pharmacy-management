@@ -203,4 +203,54 @@ describe('Sales', () => {
     expect(badRes.status).toBe(400);
     expect(badRes.body.error.code).toBe('VALIDATION_ERROR');
   });
+  it('rejects a discount greater than the subtotal instead of storing a negative total', async () => {
+    await createTestUser({ email: 'sales-disc@test.dev', password: 'Password1', role: 'ADMIN' });
+    const token = await loginAs('sales-disc@test.dev', 'Password1');
+    const company = await createTestCompany('SalesCo Disc');
+    const drug = await createTestDrug({
+      name: 'DiscountDrug',
+      barcode: 'SALE-DISC-1',
+      companyId: company.id,
+      quantity: 10,
+      sellingPrice: 50
+    });
+
+    const res = await request(app)
+      .post('/api/sales')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        paymentMode: 'CASH',
+        // subtotal would be 50; a 999999 discount previously yielded total -999949
+        discount: 999999,
+        items: [{ drugId: drug.id, quantity: 1 }]
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+
+    // The failed sale must not have consumed stock.
+    const drugRes = await request(app).get(`/api/drugs/${drug.id}`).set('Authorization', `Bearer ${token}`);
+    expect(drugRes.body.quantity).toBe(10);
+  });
+
+  it('rejects a taxRate above 100 percent', async () => {
+    await createTestUser({ email: 'sales-tax@test.dev', password: 'Password1', role: 'ADMIN' });
+    const token = await loginAs('sales-tax@test.dev', 'Password1');
+    const company = await createTestCompany('SalesCo Tax');
+    const drug = await createTestDrug({
+      name: 'TaxDrug',
+      barcode: 'SALE-TAX-1',
+      companyId: company.id,
+      quantity: 10,
+      sellingPrice: 20
+    });
+
+    const res = await request(app)
+      .post('/api/sales')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ paymentMode: 'CASH', taxRate: 5000, items: [{ drugId: drug.id, quantity: 1 }] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
 });
