@@ -12,3 +12,4 @@ coverage/
 .DS_Store
 .vite/
 apps/api/prisma/dev.db*
+apps/api/tests/*.db*
