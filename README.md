@@ -1,90 +1,119 @@
-# **Pharmacy-Management-System**
 
-**Login Information** <br>
- ```
- id :1
- password: admin 
- ```
- note: The login information can be changed while setting up MySQL or via UI later
- 
-# INTRODUCTION: <br>
-The main aim of the project is the management of the database of the pharmaceutical shop. This project is insight into the design and implementation of a Pharmacy Management System. This is done by creating a database of the available medicines in the shop. The primary aim of pharmacy management system is to improve accuracy and enhance safety and efficiency in the pharmaceutical store. The aim of this project is to develop software for the effective management of a pharmaceutical store. We have developed this software for ensuring effective policing by providing statistics of the drugs in stock. 
+<br>
 
-**Description on the topic:** <br>
-This program can be used in any pharmaceutical shops having a database to maintain. The software used can generate reports, as per the user’s requirements. The software can print invoices, bills, receipts etc. It can also maintain the record of supplies sent in by the supplier. Here, the admin who are handling the organization will be responsible to manage the record of the employee. Each employee will be given with a separate username and password.
+<p align="center">
+  <h1 align="center">MediTrack</h1>
+  <p align="center">Modern pharmacy management platform — inventory, sales, purchasing and reporting in one place.</p>
+</p>
 
-**Problem Definition:**<br>
-The aim of the project is to create an effective software to help the pharmacist to maintain the records of the medicines, handle user details, generate invoice, check and renew validity and provide a scope of communication between users by using inbuilt messaging system. Pharmacy management system deals with the maintenance of drugs and consumables in the pharmacy unit. This pharmacy management system is user friendly.
+<br>
 
+## Quick start
 
-**Objectives**<br>
--> **Primary objective**<br>
-•To gain practical experience by modeling a software based on real world problem. <br>
-•To understand how to work on Front-end (Java) and Back-end (MySQL) by using server(wamp).
+```bash
+git clone https://github.com/Ujjwalsi2/Pharmacy-management.git
+cd Pharmacy-management
+npm run setup        # install dependencies + seed the database
+npm run dev          # starts API on :4000 and frontend on :5173
+```
 
--> **Secondary objective** <br>
-•To develop an application that deals with the day to day requirement of any pharmacy.<br>
-•To develop the easy management of the medicines (drugs). <br>
-•To handle the inventory details like sales details, purchase details and stock expiry and quantity.<br>
-•To provide competitive advantage to the pharmacy.<br>
-•To provide details information about the stock on details necessary and help locate it in shop easily. <br>
-•To make the stock manageable and simplify the use of inventory in the pharmacy.<br>
+Open http://localhost:5173 and sign in:
 
-**Hardware and software tools:**<br>
-The system services and goals are established by consultation with system user. They are then defined in details and serve as a system specification. System requirement are those on which the system runs.<br><br>
+| Role     | Email                 | Password   |
+| -------- | --------------------- | ---------- |
+| Admin    | admin@meditrack.dev   | Admin@123  |
+| Pharmacist | mark@meditrack.dev | Mark@123   |
 
-⚙️	**Hardware Requirements:**<br>
-o	Computer with either Intel Pentium processor or AMD processor.<br>
-o	1GB+ DDR RAM<br>
-o	40GB hard disk drive<br>
+> `tony@meditrack.dev` is seeded inactive to exercise the disabled-account path.
 
+<br>
 
-💻	**Software Requirements:**<br>
-o	Windows/ MacOS/ Linux operating system.<br>
-o	JRE and JDK.<br>
-o	MySQL server (WAMP or XAMPP or any)<br>
+## What it does
 
-# Chapter 2 - DESIGN<br>
-Database Design is a collection of processes that facilitate the designing, development, implementation and maintenance of enterprise data management systems.<br>
-It helps produce database systems:<br>
-o	That meet the requirements of the users<br>
-o	Have high performance.<br><br>
+- **Dashboard** — revenue, top drugs, low-stock alerts and expiry warnings at a glance.
+- **Point of Sale** — add drugs to cart, apply discounts and tax, print invoices. Every sale recalculates money server-side; a rejected sale consumes no stock.
+- **Inventory** — 40 seeded drugs spanning every status (in stock, low stock, out of stock, expiring soon, expired). Full CRUD with duplicate-barcode detection.
+- **Purchases** — restock drugs with automatic quantity increment. Purchase references are race-safe document numbers (`PO-<year>-<seq>`).
+- **Sales history** — list, search, filter by payment mode, drill into individual invoices.
+- **Users & companies** — admin-managed with soft delete, self-delete guard and RBAC.
+- **Messages** — internal pharmacy messaging.
+- **Reports** — sales trends, top drugs, inventory valuation.
+- **Dark mode**, responsive down to 390 px, keyboard-accessible.
 
-**Architecture Description** <br>
-The design of a DBMS depends on its architecture. It can be centralized or decentralized or hierarchical. The architecture of a DBMS can be seen as either single tier or multi-tier.<br><br>
+<br>
 
+## Stack
 
-# Chapter 3 - IMPLEMENTATION <br>
-**Description on Implementation**<br>
-The goal of this application is to manage the medicines and various function of the pharmacy. <br><br>
-**List of modules:**<br>
-o	Login page<br>
-o	Home page<br>
-o	Company<br>
-o	Purchase<br>
-o	Drugs<br>
-o	Sales<br>
-o	User/Settings<br>
-o	Messaging<br>
+| Layer | Technology |
+| --- | --- |
+| Monorepo | npm workspaces (`apps/api`, `apps/web`) |
+| Language | TypeScript 5, strict mode |
+| Backend | Express 5, Prisma ORM, SQLite (zero external infra) |
+| Auth | JWT access token (15 min) + httpOnly refresh cookie (7 days), bcrypt |
+| Frontend | React 19, Vite 6, React Router v7, TanStack Query v5 |
+| Styling | Tailwind CSS v4, CSS variables for light/dark theming |
+| Charts | Recharts |
+| Testing | Vitest + supertest (62 tests) |
 
+<br>
 
-# Chapter 4 - Result and Discussion<br>
-By using MySQL commands and its database this website Pharmacy management tends to store all the data received from the users including drugs sales details and the profit made by the owners are all in this data base. This website allows the user to generate invoices for sales, check expiry and quantity remaining of the drugs. It also provides user with options to renew validity and add more drugs into the store and update the database accordingly. By using xampp server these database commands are easily initiated into the database and the ER diagram with relational schema diagrams helps us to make the structure of the database faster and it was easier to make them understand the needs of the website.<br>
+## Scripts
 
-**Login Information** <br>
- ```
- id :1
- password: admin 
- ```
- <br>
+| Command | What it does |
+| --- | --- |
+| `npm run setup` | Install deps + reset and seed the database |
+| `npm run dev` | Start API (port 4000) and frontend (port 5173) |
+| `npm test` | Run all 62 tests (API 34, web 28) |
+| `npm run typecheck` | Type-check both workspaces |
+| `npm run lint` | Lint both workspaces |
+| `npm run build` | Production build |
+| `npm run db:reset` | Wipe and re-seed the database |
 
-# CONCLUSIONS AND FUTURE SCOPE
-o	Detailed information gathering has to be done. Without that the purpose for using the software won’t be satisfied properly.<br>
-o	However, it can give good profits in the long run.<br>
-o	Implementing the software requires change in the business practices.<br>
-o	Efficient organization of all knowledge is the analysis company and easy analysis access and retrieval of information is possible.<br>
-o	In this project we can also include BAR CODE facility using the bar code reader, which will detect the expiry date and the other information about the related medicines.<br>
-o	Company using this software will always be able to plan in future and always be aware of their financial position in the market. <br>
-o	It leads to ease in functioning of business processes.<br>
-o	The project can be made more robust by including biometric verification.<br>
-o	There is also a scope to expand by implementing newer technologies like cloud etcetera. <br>
+<br>
+
+## Project structure
+
+```
+├── apps
+│   ├── api                  # Express 5 REST API
+│   │   ├── prisma/          # schema, migrations, seed
+│   │   ├── src/
+│   │   │   ├── routes/      # route handlers
+│   │   │   ├── services/    # business logic
+│   │   │   ├── middleware/   # auth, validation, error handling
+│   │   │   └── lib/         # errors, pagination, money, drug status
+│   │   └── tests/           # 34 API tests (Vitest + supertest)
+│   └── web                  # React 19 + Vite frontend
+│       └── src/
+│           ├── components/  # layout shell + 25 UI primitives
+│           ├── features/    # auth, dashboard, drugs, sales, purchases, companies, messages, reports, users
+│           ├── pages/       # page-level components
+│           ├── hooks/       # useListQuery, useAuth, useMediaQuery
+│           └── lib/         # API client, cn() utility, query-string builder
+├── docs/
+│   ├── API_CONTRACT.md      # authoritative API specification
+│   └── DESIGN_SYSTEM.md     # design tokens, layout, component catalog
+└── pharmacy.sql             # legacy schema preserved for reference
+```
+
+<br>
+
+## API (port 4000)
+
+Base URL: `http://localhost:4000/api`. Full contract in [docs/API_CONTRACT.md](docs/API_CONTRACT.md).
+
+Health check (unauthenticated): `GET /api/health` → `{ "status": "ok", "uptime": ... }`
+
+All protected endpoints require `Authorization: Bearer <jwt>`. Refresh token lives in the `mt_refresh` httpOnly cookie.
+
+<br>
+
+## Design
+
+Tokens and component specification in [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md). Calm clinical aesthetic (Linear/Stripe-like), light and dark themes via CSS custom properties on `:root` / `.dark`, Inter font, WCAG AA contrast.
+
+<br>
+
+## License
+
+This project is a complete rebuild of the original Java Swing + MySQL pharmacy project. Original `pharmacy.sql` schema preserved for reference.
