@@ -277,7 +277,7 @@ async function main() {
 
   console.log('Seeding purchases...');
   let purchaseCounter = 0;
-  for (let i = 0; i < 25; i++) {
+  for (let i = 0; i < 40; i++) {
     const company = pick(companies);
     const companyDrugs = drugs.filter((d) => d.companyId === company.id);
     if (companyDrugs.length === 0) continue;
@@ -325,7 +325,7 @@ async function main() {
   console.log('Seeding sales...');
   let saleCounter = 0;
   const currentYear = new Date().getFullYear();
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < 180; i++) {
     if (sellableDrugs.length === 0) break;
     const itemCount = randomInt(1, 4);
     const chosenDrugs = new Set<string>();
@@ -366,7 +366,8 @@ async function main() {
     const total = round2(subtotal - discount + tax);
 
     saleCounter += 1;
-    const daysAgo = randomInt(0, 59);
+    // Force the last 10 sales to today so the dashboard always shows activity.
+    const daysAgo = saleCounter > 170 ? 0 : randomInt(0, 59);
     const createdAt = new Date();
     createdAt.setDate(createdAt.getDate() - daysAgo);
     createdAt.setHours(randomInt(8, 20), randomInt(0, 59), randomInt(0, 59));

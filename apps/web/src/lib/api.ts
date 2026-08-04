@@ -69,7 +69,10 @@ function rawFetch(path: string, init: RequestInit): Promise<Response> {
     headers.set('Content-Type', 'application/json');
   }
   if (accessToken) {
+    // Send both headers so the request survives the public preview proxy,
+    // which is known to corrupt the standard Authorization header.
     headers.set('Authorization', `Bearer ${accessToken}`);
+    headers.set('x-access-token', accessToken);
   }
   return fetch(`${API_URL}${path}`, { ...init, headers, credentials: 'include' });
 }
