@@ -19,6 +19,13 @@ export function createApp(): Express {
   const app = express();
 
   app.disable('x-powered-by');
+
+  // Trust the reverse proxy (Railway, Render, etc.) for correct
+  // client-IP reporting and HTTPS detection behind the proxy.
+  if (env.TRUST_PROXY) {
+    app.set('trust proxy', 1);
+  }
+
   app.use(helmet());
   app.use(
     cors({

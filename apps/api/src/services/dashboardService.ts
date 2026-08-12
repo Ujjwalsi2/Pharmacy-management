@@ -16,6 +16,10 @@ function toDayKey(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
+function usingSQLite(): boolean {
+  return (process.env.DATABASE_URL ?? '').startsWith('file:');
+}
+
 interface RevenueTrendRow {
   day: string;
   revenue: number | null;
@@ -37,6 +41,8 @@ export async function getDashboardSummary() {
   const monthStart = startOfMonth(now);
   const trendStart = new Date(today);
   trendStart.setDate(trendStart.getDate() - (TREND_WINDOW_DAYS - 1));
+
+  const isSQLite = usingSQLite();
 
   const [
     revenueTodayAgg,
@@ -64,38 +70,60 @@ export async function getDashboardSummary() {
     prisma.company.count(),
     prisma.user.count({ where: { active: true } }),
     getAlerts(),
-    // Prisma stores SQLite DateTime columns as integer epoch-milliseconds,
-    // not ISO strings, so raw SQL must convert with `createdAt/1000` +
-    // `unixepoch` rather than comparing/formatting the column directly.
-    prisma.$queryRaw<RevenueTrendRow[]>`
-      SELECT strftime('%Y-%m-%d', createdAt / 1000, 'unixepoch') as day,
-             SUM(total) as revenue,
-             COUNT(*) as orders
-      FROM sales
-      WHERE createdAt >= ${trendStart.getTime()}
-      GROUP BY day
-      ORDER BY day ASC
-    `,
-    prisma.$queryRaw<TopDrugRow[]>`
-      SELECT si.drugId as drugId, d.name as name,
-             SUM(si.quantity) as units, SUM(si.amount) as revenue
-      FROM sale_items si
-      JOIN sales s ON s.id = si.saleId
-      JOIN drugs d ON d.id = si.drugId
-      WHERE s.createdAt >= ${trendStart.getTime()}
-      GROUP BY si.drugId, d.name
-      ORDER BY revenue DESC
-      LIMIT 5
-    `,
+    // Revenue trend: use provider-agnostic SQL depending on dialect.
+    isSQLite
+      ? (prisma.$queryRawUnsafe<RevenueTrendRow[]>(
+          `SELECT strftime('%Y-%m-%d', createdAt / 1000, 'unixepoch') as day,
+                  SUM(total) as revenue, COUNT(*) as orders
+           FROM sales
+           WHERE createdAt >= ?
+           GROUP BY day ORDER BY day ASC`,
+          trendStart.getTime()
+        ) as Promise<RevenueTrendRow[]>)
+      : (prisma.$queryRawUnsafe<RevenueTrendRow[]>(
+          `SELECT TO_CHAR("createdAt"::date, 'YYYY-MM-DD') as day,
+                  SUM(total) as revenue, COUNT(*) as orders
+           FROM sales
+           WHERE "createdAt" >= $1::timestamp
+           GROUP BY "createdAt"::date ORDER BY "createdAt"::date ASC`,
+          trendStart
+        ) as Promise<RevenueTrendRow[]>),
+    // Top drugs: same approach.
+    isSQLite
+      ? (prisma.$queryRawUnsafe<TopDrugRow[]>(
+          `SELECT si.drugId as drugId, d.name as name,
+                  SUM(si.quantity) as units, SUM(si.amount) as revenue
+           FROM sale_items si
+           JOIN sales s ON s.id = si.saleId
+           JOIN drugs d ON d.id = si.drugId
+           WHERE s.createdAt >= ?
+           GROUP BY si.drugId, d.name
+           ORDER BY revenue DESC LIMIT 5`,
+          trendStart.getTime()
+        ) as Promise<TopDrugRow[]>)
+      : (prisma.$queryRawUnsafe<TopDrugRow[]>(
+          `SELECT si."drugId" as "drugId", d.name as name,
+                  SUM(si.quantity) as units, SUM(si.amount) as revenue
+           FROM sale_items si
+           JOIN sales s ON s.id = si."saleId"
+           JOIN drugs d ON d.id = si."drugId"
+           WHERE s."createdAt" >= $1::timestamp
+           GROUP BY si."drugId", d.name
+           ORDER BY revenue DESC LIMIT 5`,
+          trendStart
+        ) as Promise<TopDrugRow[]>),
     prisma.sale.findMany({
       orderBy: { createdAt: 'desc' },
       take: 5,
       select: { id: true, invoiceNo: true, customerName: true, total: true, createdAt: true }
     }),
-    prisma.$queryRaw<Array<{ costValue: number | null; retailValue: number | null }>>`
-      SELECT SUM(quantity * costPrice) as costValue, SUM(quantity * sellingPrice) as retailValue
-      FROM drugs
-    `
+    isSQLite
+      ? (prisma.$queryRawUnsafe<Array<{ costValue: number | null; retailValue: number | null }>>(
+          `SELECT SUM(quantity * costPrice) as costValue, SUM(quantity * sellingPrice) as retailValue FROM drugs`
+        ) as Promise<Array<{ costValue: number | null; retailValue: number | null }>>)
+      : (prisma.$queryRawUnsafe<Array<{ costValue: number | null; retailValue: number | null }>>(
+          `SELECT SUM(quantity * "costPrice") as "costValue", SUM(quantity * "sellingPrice") as "retailValue" FROM drugs`
+        ) as Promise<Array<{ costValue: number | null; retailValue: number | null }>>)
   ]);
 
   const trendMap = new Map<string, { revenue: number; orders: number }>();
@@ -119,7 +147,9 @@ export async function getDashboardSummary() {
     revenue: round2(row.revenue ?? 0)
   }));
 
-  const inventoryValue = round2(inventoryAgg[0]?.costValue ?? 0);
+  const inventoryValue = isSQLite
+    ? round2((inventoryAgg as Array<{ costValue: number | null }>)[0]?.costValue ?? 0)
+    : round2((inventoryAgg as Array<{ costValue: number | null }>)[0]?.costValue ?? 0);
 
   return {
     revenueToday: round2(revenueTodayAgg._sum.total ?? 0),
