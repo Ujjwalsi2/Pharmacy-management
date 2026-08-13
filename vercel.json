@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build -w @meditrack/web",
+  "buildCommand": "cd apps/web && npx vite build",
   "outputDirectory": "apps/web/dist",
   "installCommand": "npm install --include=dev",
   "rewrites": [
