@@ -19,7 +19,8 @@
     "typecheck": "npm run typecheck -w @meditrack/api && npm run typecheck -w @meditrack/web",
     "db:reset": "npm run db:reset -w @meditrack/api",
     "seed": "npm run seed -w @meditrack/api",
-    "setup": "npm install && npm run db:reset"
+    "setup": "npm install && npm run db:reset",
+    "start": "node apps/api/dist/index.js"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

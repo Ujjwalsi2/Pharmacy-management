@@ -1,0 +1,8 @@
+{
+  "build": {
+    "buildCommand": "npm run build -w @meditrack/api"
+  },
+  "deploy": {
+    "startCommand": "node apps/api/dist/index.js"
+  }
+}
