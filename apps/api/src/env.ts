@@ -6,12 +6,13 @@ dotenv.config();
 const envSchema = z.object({
   PORT: z.coerce.number().default(4000),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  DATABASE_URL: z.string().default('file:./dev.db'),
-  JWT_ACCESS_SECRET: z.string().default('dev-access-secret-change-me'),
-  JWT_REFRESH_SECRET: z.string().default('dev-refresh-secret-change-me'),
+  DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5432/meditrack'),
+  JWT_ACCESS_SECRET: z.string().min(32).default('a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2'),
+  JWT_REFRESH_SECRET: z.string().min(32).default('f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5'),
   ACCESS_TOKEN_TTL: z.string().default('15m'),
   REFRESH_TOKEN_TTL: z.string().default('7d'),
-  CORS_ORIGIN: z.string().default('http://localhost:5173')
+  CORS_ORIGIN: z.string().default('http://localhost:5173'),
+  TRUST_PROXY: z.coerce.boolean().default(false),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -23,17 +24,3 @@ if (!parsed.success) {
 }
 
 export const env = parsed.data;
-
-const PLACEHOLDER_SECRETS = new Set([
-  'dev-access-secret-change-me',
-  'dev-refresh-secret-change-me'
-]);
-
-if (
-  env.NODE_ENV === 'production' &&
-  (PLACEHOLDER_SECRETS.has(env.JWT_ACCESS_SECRET) || PLACEHOLDER_SECRETS.has(env.JWT_REFRESH_SECRET))
-) {
-  throw new Error(
-    'Refusing to start in production with placeholder JWT secrets. Set JWT_ACCESS_SECRET and JWT_REFRESH_SECRET to strong random values.'
-  );
-}

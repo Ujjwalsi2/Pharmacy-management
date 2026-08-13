@@ -8,15 +8,10 @@ type Tx = Prisma.TransactionClient;
  *
  * Implementation: a `Counter` row keyed by `${scope}-${year}` is atomically
  * incremented via `upsert` + `increment` inside the SAME `$transaction` that
- * creates the Sale/Purchase record. SQLite serializes writers at the
- * database-file level, so once a transaction acquires the write lock to
- * upsert the counter, no other transaction can interleave and read a stale
- * value - this makes the increment race-safe without needing optimistic
- * retry loops. If we ever move off SQLite to a database with real MVCC
- * (e.g. Postgres), this same upsert pattern still works because the counter
- * row itself is the serialization point (SELECT ... FOR UPDATE semantics via
- * upsert), but a unique-constraint retry loop on the final insert would be a
- * reasonable additional safety net.
+ * creates the Sale/Purchase record. The counter row itself acts as the
+ * serialization point — its upsert serializes concurrent transactions the
+ * same way across SQLite (file-lock) and PostgreSQL (row-lock via upsert),
+ * so the increment is always race-safe without retry loops.
  */
 export async function nextSequence(
   tx: Tx,

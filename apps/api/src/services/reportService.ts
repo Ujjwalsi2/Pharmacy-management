@@ -19,28 +19,53 @@ function resolveRange(range: ReportRange) {
   return { from, to };
 }
 
+function usingSQLite(): boolean {
+  return (process.env.DATABASE_URL ?? '').startsWith('file:');
+}
+
 export async function getSalesReport(range: ReportRange, groupBy: 'day' | 'month') {
   const { from, to } = resolveRange(range);
-  const format = groupBy === 'month' ? '%Y-%m' : '%Y-%m-%d';
+  const isSQLite = usingSQLite();
 
-  // Prisma stores SQLite DateTime columns as integer epoch-milliseconds, so
-  // raw SQL must convert with `createdAt/1000` + `unixepoch` rather than
-  // formatting/comparing the column directly as if it were a string.
-  const rows = await prisma.$queryRawUnsafe<SalesReportRow[]>(
-    `
-      SELECT strftime('${format}', s.createdAt / 1000, 'unixepoch') as period,
-             SUM(s.total) as revenue,
-             COUNT(DISTINCT s.id) as orders,
-             COALESCE(SUM(si.quantity), 0) as units
-      FROM sales s
-      LEFT JOIN sale_items si ON si.saleId = s.id
-      WHERE s.createdAt >= ? AND s.createdAt <= ?
-      GROUP BY period
-      ORDER BY period ASC
-    `,
-    from.getTime(),
-    to.getTime()
-  );
+  const rows = isSQLite
+    ? await prisma.$queryRawUnsafe<SalesReportRow[]>(
+        groupBy === 'month'
+          ? `SELECT strftime('%Y-%m', createdAt / 1000, 'unixepoch') as period,
+                    SUM(s.total) as revenue, COUNT(DISTINCT s.id) as orders,
+                    COALESCE(SUM(si.quantity), 0) as units
+             FROM sales s
+             LEFT JOIN sale_items si ON si.saleId = s.id
+             WHERE s.createdAt >= ? AND s.createdAt <= ?
+             GROUP BY period ORDER BY period ASC`
+          : `SELECT strftime('%Y-%m-%d', createdAt / 1000, 'unixepoch') as period,
+                    SUM(s.total) as revenue, COUNT(DISTINCT s.id) as orders,
+                    COALESCE(SUM(si.quantity), 0) as units
+             FROM sales s
+             LEFT JOIN sale_items si ON si.saleId = s.id
+             WHERE s.createdAt >= ? AND s.createdAt <= ?
+             GROUP BY period ORDER BY period ASC`,
+        from.getTime(),
+        to.getTime()
+      )
+    : await prisma.$queryRawUnsafe<SalesReportRow[]>(
+        groupBy === 'month'
+          ? `SELECT TO_CHAR(s."createdAt"::date, 'YYYY-MM') as period,
+                    SUM(s.total) as revenue, COUNT(DISTINCT s.id) as orders,
+                    COALESCE(SUM(si.quantity), 0) as units
+             FROM sales s
+             LEFT JOIN sale_items si ON si."saleId" = s.id
+             WHERE s."createdAt" >= $1::timestamp AND s."createdAt" <= $2::timestamp
+             GROUP BY period ORDER BY period ASC`
+          : `SELECT TO_CHAR(s."createdAt"::date, 'YYYY-MM-DD') as period,
+                    SUM(s.total) as revenue, COUNT(DISTINCT s.id) as orders,
+                    COALESCE(SUM(si.quantity), 0) as units
+             FROM sales s
+             LEFT JOIN sale_items si ON si."saleId" = s.id
+             WHERE s."createdAt" >= $1::timestamp AND s."createdAt" <= $2::timestamp
+             GROUP BY period ORDER BY period ASC`,
+        from,
+        to
+      );
 
   const data = rows.map((row) => ({
     period: row.period,
@@ -70,23 +95,35 @@ interface TopDrugRow {
 
 export async function getTopDrugsReport(range: ReportRange, limit: number) {
   const { from, to } = resolveRange(range);
+  const isSQLite = usingSQLite();
 
-  const rows = await prisma.$queryRawUnsafe<TopDrugRow[]>(
-    `
-      SELECT si.drugId as drugId, d.name as name,
-             SUM(si.quantity) as units, SUM(si.amount) as revenue
-      FROM sale_items si
-      JOIN sales s ON s.id = si.saleId
-      JOIN drugs d ON d.id = si.drugId
-      WHERE s.createdAt >= ? AND s.createdAt <= ?
-      GROUP BY si.drugId, d.name
-      ORDER BY revenue DESC
-      LIMIT ?
-    `,
-    from.getTime(),
-    to.getTime(),
-    limit
-  );
+  const rows = isSQLite
+    ? await prisma.$queryRawUnsafe<TopDrugRow[]>(
+        `SELECT si.drugId as drugId, d.name as name,
+                SUM(si.quantity) as units, SUM(si.amount) as revenue
+         FROM sale_items si
+         JOIN sales s ON s.id = si.saleId
+         JOIN drugs d ON d.id = si.drugId
+         WHERE s.createdAt >= ? AND s.createdAt <= ?
+         GROUP BY si.drugId, d.name
+         ORDER BY revenue DESC LIMIT ?`,
+        from.getTime(),
+        to.getTime(),
+        limit
+      )
+    : await prisma.$queryRawUnsafe<TopDrugRow[]>(
+        `SELECT si."drugId" as "drugId", d.name as name,
+                SUM(si.quantity) as units, SUM(si.amount) as revenue
+         FROM sale_items si
+         JOIN sales s ON s.id = si."saleId"
+         JOIN drugs d ON d.id = si."drugId"
+         WHERE s."createdAt" >= $1::timestamp AND s."createdAt" <= $2::timestamp
+         GROUP BY si."drugId", d.name
+         ORDER BY revenue DESC LIMIT $3`,
+        from,
+        to,
+        limit
+      );
 
   return {
     data: rows.map((row) => ({
@@ -106,15 +143,25 @@ interface InventoryByTypeRow {
 }
 
 export async function getInventoryValueReport() {
-  const rows = await prisma.$queryRaw<InventoryByTypeRow[]>`
-    SELECT type as type,
-           SUM(quantity) as units,
-           SUM(quantity * costPrice) as costValue,
-           SUM(quantity * sellingPrice) as retailValue
-    FROM drugs
-    GROUP BY type
-    ORDER BY type ASC
-  `;
+  const isSQLite = usingSQLite();
+
+  const rows = isSQLite
+    ? await prisma.$queryRaw<InventoryByTypeRow[]>`
+        SELECT type as type,
+               SUM(quantity) as units,
+               SUM(quantity * costPrice) as costValue,
+               SUM(quantity * sellingPrice) as retailValue
+        FROM drugs
+        GROUP BY type ORDER BY type ASC
+      `
+    : await prisma.$queryRaw<InventoryByTypeRow[]>`
+        SELECT type as type,
+               SUM(quantity) as units,
+               SUM(quantity * "costPrice") as "costValue",
+               SUM(quantity * "sellingPrice") as "retailValue"
+        FROM drugs
+        GROUP BY type ORDER BY type ASC
+      `;
 
   const byType = rows.map((row) => ({
     type: row.type,
